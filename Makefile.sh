@@ -1,7 +1,7 @@
 #!/bin/bash
-sdcc -c LCD.c
+sdcc -c lcd.c
 sdcc -c main.c
-sdcc main.rel LCD.rel
+sdcc main.rel lcd.rel
 shopt -s extglob
-mv ~/NOKIADISP/!(*.ihx|*.sh|*.h|*.c|Rest) ~/NOKIADISP/Rest
-cp ~/NOKIADISP/main.ihx /media/KINGSTON/Compilat
+mv ~/cow-little-game/!(*.md|*.ihx|*.sh|*.h|*.c|Rest) ~/cow-little-game/Rest
+cp ~/cow-little-game/main.ihx /media/CB0C-B87F/Compilat
