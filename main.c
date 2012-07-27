@@ -19,6 +19,7 @@
    Run it and see it :)      */
    
 unsigned int poscar;
+int c=0; 
    
 unsigned char code sega[504] = {
 	0xFF,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,
@@ -63,6 +64,28 @@ unsigned char code presents[54] = {
 	0xA8,0xA8,0xA8,0x48
 };
 
+void inittimer(){
+	P2=0x00;                   // clear op
+	TMOD=0x90;               // set timer 1
+	TH1=0x3C;                 // load count 15535
+    TL1=0xAF;
+
+    IE=0x88;                    // enable timer 1 interrupt
+    LED=0;                      // LED on
+    TR1=1;                     // timer 1 start
+   }
+
+void timer1(void) interrupt 3{    // timer 1 overflow vactor
+	TF1=0;                             // clear overflow flag  
+	c++;                                 // increment counter
+	if(c==200){                        // if 100 counts of 50 ms(= 5 sec) are over
+		TR1=0;                      // stop timer 
+		LED=1;
+	} 
+	TH1=0x3C;                      // other reaload timer 1 with
+	TL1=0xAF;                      // 15535 to count 50 ms  
+}
+
 void intro(){
 	int i;
 	initlcd();
@@ -93,25 +116,33 @@ void initgame(){
 
 void changecar(){
 	int i;
-	unsigned int posexa,posexp;
+	//unsigned int posexa,posexp;
 	
-	posexa = poscar - 1;
-	pixelxy(posexa,5);
-	wrdata(0x00);
+	if ((poscar<81) && (poscar>=0)){ 
+		/*posexa = poscar - 1;
+		pixelxy(posexa,5);
+		wrdata(0x00);
 	
-	posexp = poscar + 5;
-	pixelxy(posexp,5);
-	wrdata(0x00);
+		posexp = poscar + 5;
+		pixelxy(posexp,5);
+		wrdata(0x00);*/
 	
-	pixelxy(poscar,5);
-	for(i=0;i<4;i++)
-		wrdata(0x0F);
+		pixelxy(0,5);
+		for(i=0;i<84;i++)
+			wrdata(0x00);
+			
+		pixelxy(poscar,5);
+		for(i=0;i<4;i++)
+			wrdata(0x0F);
+	}
 }
 
 void main(){
-	intro();
+	inittimer();
 	
+	intro();	
 	initgame();
+	
 	
 	while(1){
 		if(AC_DR==0)
@@ -125,18 +156,19 @@ void main(){
 			BUZ = 1;
 
 		if(BUT_ES==0){
-			poscar += 1;
+			poscar--;
 			changecar();
 		}
 		
 		if(BUT_DR==0){
-			poscar -= 1;
+			poscar++;
 			changecar();
 		}
 		
-		if(BUT_AC==0)
-			putstr(" ^^ ^^ ");
-
+		if(BUT_AC==0){
+			poscar++;
+			changecar();
+		}
 
 
 	}
