@@ -11,6 +11,7 @@
 *****************************************************/
 
 #include "lcd.h"
+#include <stdlib.h>
 
 #define BUT_ES P1_5
 #define BUT_DR P1_6
@@ -20,4 +21,10 @@
 #define LED P3_3
 #define BUZ P3_2
 
+void inittimer();
+void intro();
+void initgame();
+unsigned int numrandom();
+void movobs();
+void changecar();
 void main();

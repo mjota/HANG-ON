@@ -20,6 +20,7 @@
    
 unsigned int poscar;
 int c=0; 
+unsigned int posxobs,aposxobs,posyobs,easyobs;
    
 unsigned char code sega[504] = {
 	0xFF,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,
@@ -65,26 +66,13 @@ unsigned char code presents[54] = {
 };
 
 void inittimer(){
-	P2=0x00;                   // clear op
-	TMOD=0x90;               // set timer 1
-	TH1=0x3C;                 // load count 15535
-    TL1=0xAF;
-
-    IE=0x88;                    // enable timer 1 interrupt
-    LED=0;                      // LED on
-    TR1=1;                     // timer 1 start
+    TMOD = ((TMOD & 0x0F) | 0x10);
+    TF1 = 0; //Interrupcion no atendida.
+    ET1 = 1; //Timer habilitado.
+    TH1 = 0x0F; //Timer inicializado.
+    TL1 = 0x00;
+    TR1 = 1; //Si TR1 = 0 no incremente.
    }
-
-void timer1(void) interrupt 3{    // timer 1 overflow vactor
-	TF1=0;                             // clear overflow flag  
-	c++;                                 // increment counter
-	if(c==200){                        // if 100 counts of 50 ms(= 5 sec) are over
-		TR1=0;                      // stop timer 
-		LED=1;
-	} 
-	TH1=0x3C;                      // other reaload timer 1 with
-	TL1=0xAF;                      // 15535 to count 50 ms  
-}
 
 void intro(){
 	int i;
@@ -112,6 +100,55 @@ void initgame(){
 		wrdata(0x0F);
 	
 	poscar = 40;
+	posxobs = numrandom();
+	posyobs = 0;
+	easyobs = 42;
+}
+
+unsigned int numrandom(){
+	unsigned int num;
+	num = rand() % 6;
+	return num;
+}	
+
+void changeled(){
+	if (LED==0){
+		LED=1;
+	}else{
+		LED=0;
+	}			
+}
+
+void movobs(){
+	int rightobs;	
+	if (posyobs<6){		
+		pixelxy(posxobs,posyobs);
+		wrdata(0xFF);
+		
+		rightobs = posxobs + easyobs;
+		pixelxy(rightobs,posyobs);
+		wrdata(0xFF);
+		
+		//Limpieza anterior
+		if (posyobs>0){
+			pixelxy(posxobs,posyobs-1);
+			wrdata(0x00);
+			pixelxy(rightobs,posyobs-1);
+			wrdata(0x00);
+		}else{
+			pixelxy(aposxobs,5);
+			wrdata(0x00);
+			
+			rightobs = aposxobs + easyobs;
+			pixelxy(rightobs,5);
+			wrdata(0x00);
+		}		
+		posyobs++;		
+	}else{
+		posyobs = 0;
+		aposxobs = posxobs;
+		posxobs = numrandom();
+	}
 }
 
 void changecar(){
@@ -138,12 +175,16 @@ void changecar(){
 }
 
 void main(){
+	int s;
 	inittimer();
 	
 	intro();	
-	initgame();
+	initgame();	
 	
-	
+	for (s=0;s<9;s++){
+		movobs();
+	}
+
 	while(1){
 		if(AC_DR==0)
 			LED = 0;
@@ -166,10 +207,13 @@ void main(){
 		}
 		
 		if(BUT_AC==0){
-			poscar++;
-			changecar();
+			movobs();
 		}
-
-
+		if(TF1==1){
+			TR1=0;
+			ET1=0;
+			movobs;
+			inittimer();			
+		}
 	}
 }
