@@ -66,13 +66,38 @@ unsigned char code presents[54] = {
 };
 
 void inittimer(){
-    TMOD = ((TMOD & 0x0F) | 0x10);
-    TF1 = 0; //Interrupcion no atendida.
-    ET1 = 1; //Timer habilitado.
-    TH1 = 0x0F; //Timer inicializado.
-    TL1 = 0x00;
-    TR1 = 1; //Si TR1 = 0 no incremente.
-   }
+	TMOD &= 0xF0;		/*Timer 0 en modo 2: Contador autorecargable */
+	TMOD |= 0x09;		/* GATE0=1; C/T0#=0; T0M1=1; T0M0=0; */
+	
+	TH0 = 0x00;	        /* Valor inicial de autorecarga */
+	TL0 = 0x00;			// Valor inicial del contador
+	ET0=1;				/* Configura interrupción de timer 0 */
+	EA=1;               /* Habilita interrupciones */
+	TR0=1;	
+}
+   
+void it_timer0(void) interrupt 1{
+	TF0 = 0;            /* Pone a 0 el flag de interrupción */
+	
+	if(BUT_ES==0){
+		poscar--;
+		changecar();
+	}
+	if(BUT_DR==0){
+		poscar++;
+		changecar();
+	}
+		
+	if(c<10){
+		c++;
+	}else{
+		movobs();
+		c=0;
+	}
+	
+	pixelxy(5,0);
+	putchar('5');
+}
 
 void intro(){
 	int i;
@@ -101,13 +126,13 @@ void initgame(){
 	
 	poscar = 40;
 	posxobs = numrandom();
-	posyobs = 0;
+	posyobs = 1;
 	easyobs = 42;
 }
 
 unsigned int numrandom(){
 	unsigned int num;
-	num = rand() % 6;
+	num = rand() % 42;
 	return num;
 }	
 
@@ -130,7 +155,7 @@ void movobs(){
 		wrdata(0xFF);
 		
 		//Limpieza anterior
-		if (posyobs>0){
+		if (posyobs>1){
 			pixelxy(posxobs,posyobs-1);
 			wrdata(0x00);
 			pixelxy(rightobs,posyobs-1);
@@ -145,7 +170,7 @@ void movobs(){
 		}		
 		posyobs++;		
 	}else{
-		posyobs = 0;
+		posyobs = 1;
 		aposxobs = posxobs;
 		posxobs = numrandom();
 	}
@@ -176,7 +201,7 @@ void changecar(){
 
 void main(){
 	int s;
-	inittimer();
+	LED=0;
 	
 	intro();	
 	initgame();	
@@ -184,6 +209,10 @@ void main(){
 	for (s=0;s<9;s++){
 		movobs();
 	}
+	
+	inittimer();
+	
+	LED=1;
 
 	while(1){
 		if(AC_DR==0)
@@ -195,25 +224,9 @@ void main(){
 			BUZ = 0;
 		else
 			BUZ = 1;
-
-		if(BUT_ES==0){
-			poscar--;
-			changecar();
-		}
-		
-		if(BUT_DR==0){
-			poscar++;
-			changecar();
-		}
 		
 		if(BUT_AC==0){
 			movobs();
-		}
-		if(TF1==1){
-			TR1=0;
-			ET1=0;
-			movobs;
-			inittimer();			
-		}
+		}		
 	}
 }
