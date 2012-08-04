@@ -19,8 +19,10 @@
    Run it and see it :)      */
    
 unsigned int poscar;
-int c=0; 
+int c,t=0; 
 unsigned int posxobs,aposxobs,posyobs,easyobs;
+unsigned int flagobs, flagcarL, flagcarR, flagtime, flagdie = 0;
+unsigned int segs,mins = 0;
    
 unsigned char code sega[504] = {
 	0xFF,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,
@@ -77,33 +79,40 @@ void inittimer(){
 }
    
 void it_timer0(void) interrupt 1{
-	TF0 = 0;            /* Pone a 0 el flag de interrupción */
 	
 	if(BUT_ES==0){
-		poscar--;
-		changecar();
+		flagcarL=1;
 	}
 	if(BUT_DR==0){
-		poscar++;
-		changecar();
+		flagcarR=1;
 	}
 		
 	if(c<10){
 		c++;
 	}else{
-		movobs();
-		c=0;
+		flagobs=1;
 	}
 	
-	pixelxy(5,0);
-	putchar('5');
+	if(t<100){
+		t++;
+	}else{
+		flagtime=1;
+	}
+	
+	if(posyobs==5){
+		if((poscar>posxobs) && ((poscar+3) < (posxobs + easyobs))){
+			LED=0;
+		}else{
+			flagdie=1;
+		}
+	}
+	
+	TF0 = 0;            /* Pone a 0 el flag de interrupción */
 }
 
 void intro(){
 	int i;
 	initlcd();
-	//Print string to LCD
-	//putstr("Welcome to Rickey");
 
 	pixelxy(0,0);
 	for(i=0;i<504;i++)
@@ -124,10 +133,14 @@ void initgame(){
 	for(i=0;i<4;i++)
 		wrdata(0x0F);
 	
+	cursorxy(1,1);
+	putstr("00:00   1 LIFE");
+	
 	poscar = 40;
 	posxobs = numrandom();
 	posyobs = 1;
 	easyobs = 42;
+
 }
 
 unsigned int numrandom(){
@@ -135,14 +148,6 @@ unsigned int numrandom(){
 	num = rand() % 42;
 	return num;
 }	
-
-void changeled(){
-	if (LED==0){
-		LED=1;
-	}else{
-		LED=0;
-	}			
-}
 
 void movobs(){
 	int rightobs;	
@@ -178,15 +183,13 @@ void movobs(){
 
 void changecar(){
 	int i;
-	//unsigned int posexa,posexp;
 	
 	if ((poscar<81) && (poscar>=0)){ 
-		/*posexa = poscar - 1;
-		pixelxy(posexa,5);
+		/*
+		pixelxy(poscar-1,5);
 		wrdata(0x00);
 	
-		posexp = poscar + 5;
-		pixelxy(posexp,5);
+		pixelxy(poscar+5,5);
 		wrdata(0x00);*/
 	
 		pixelxy(0,5);
@@ -199,22 +202,56 @@ void changecar(){
 	}
 }
 
+void changetime(){
+	if(segs<60){
+		cursorxy(1,4);
+		putstr("50");
+	}else{
+		mins++;
+		cursorxy(1,1);
+		putstr("10:20");
+	}
+}
+
 void main(){
-	int s;
 	LED=0;
 	
 	intro();	
 	initgame();	
-	
-	for (s=0;s<9;s++){
-		movobs();
-	}
 	
 	inittimer();
 	
 	LED=1;
 
 	while(1){
+		if(flagcarL==1){
+			flagcarL=0;
+			poscar--;
+			changecar();
+		}
+		if(flagcarR==1){
+			flagcarR=0;
+			poscar++;
+			changecar();
+		}
+		
+		if(flagobs==1){
+			flagobs=0;
+			movobs();
+			c=0;
+		}
+		
+		if(flagtime==1){
+			flagtime=0;
+			segs++;
+			changetime();
+		}
+		
+		if(flagdie==1){
+			flagdie=0;
+			BUZ = 0;
+		}
+		
 		if(AC_DR==0)
 			LED = 0;
 		else

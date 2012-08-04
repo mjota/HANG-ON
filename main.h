@@ -22,6 +22,7 @@
 #define BUZ P3_2
 
 void inittimer();
+void changetime();
 void it_timer0(void) interrupt 1;
 void intro();
 void initgame();
