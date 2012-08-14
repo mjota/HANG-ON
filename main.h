@@ -11,6 +11,7 @@
 *****************************************************/
 
 #include "lcd.h"
+#include "helper.h"
 #include <stdlib.h>
 
 #define BUT_ES P1_5
@@ -26,7 +27,7 @@ void changetime();
 void it_timer0(void) interrupt 1;
 void intro();
 void initgame();
-unsigned int numrandom();
+unsigned int numrandom(unsigned int max);
 void movobs();
 void changecar();
 void main();
