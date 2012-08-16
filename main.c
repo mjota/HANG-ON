@@ -23,7 +23,8 @@ int c,t,l,d=0;
 unsigned int posxobs,aposxobs,posyobs,easyobs;
 unsigned int posxlife,posylife;
 unsigned int flagobs, flagcar, flagtime, flagdie, flaglife = 0;
-unsigned int segs,mins = 0;
+unsigned int segs,mins = 0;	
+int sel = 0;
    
 unsigned char code sega[504] = {
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -150,11 +151,20 @@ void inittimer(){
    
 void it_timer0(void) interrupt 1{
 	
-	if(BUT_ES==0){
-		flagcar=1;
-	}
-	if(BUT_DR==0){
-		flagcar=2;
+	if (sel==0){
+		if(BUT_ES==0){
+			flagcar=1;
+		}
+		if(BUT_DR==0){
+			flagcar=2;
+		}	
+	}else{
+		if(AC_ES==0){
+			flagcar=1;
+		}
+		if(AC_DR==0){
+			flagcar=2;
+		}		
 	}
 		
 	if(c<10){
@@ -201,7 +211,6 @@ void it_timer0(void) interrupt 1{
 
 void intro(){
 	int i;
-	int sel = 0;
 	initlcd();
 
 	pixelxy(0,0);
@@ -274,7 +283,7 @@ void initgame(){
 	//posxlife = numrandom(75);
 	//posylife = 1;
 	posyobs = 1;
-	easyobs = 10; //42
+	easyobs = 42;
 
 }
 
@@ -285,7 +294,16 @@ unsigned int numrandom(unsigned int max){
 }	
 
 void movobs(){
-	int rightobs;	
+	int rightobs;
+	if (posyobs==1){
+		pixelxy(aposxobs,5);
+		wrdata(0x00);
+		
+		rightobs = aposxobs + easyobs;
+		pixelxy(rightobs,5);
+		wrdata(0x00);	
+		easyobs = 42 - (d % 35);
+	}
 	if (posyobs<6){		
 		pixelxy(posxobs,posyobs);
 		wrdata(0xFF);
@@ -306,14 +324,7 @@ void movobs(){
 			wrdata(0x00);
 			pixelxy(rightobs,posyobs-1);
 			wrdata(0x00);
-		}else{
-			pixelxy(aposxobs,5);
-			wrdata(0x00);
-			
-			rightobs = aposxobs + easyobs;
-			pixelxy(rightobs,5);
-			wrdata(0x00);
-		}		
+		}	
 		posyobs++;		
 	}else{
 		posyobs = 1;
@@ -420,7 +431,7 @@ void main(){
 			flagobs=0;
 			movobs();
 			d++;
-			c=0 + (d/10);
+			c= 0 + (d/100);
 		}
 		
 		/*if(flaglife==1){
@@ -439,19 +450,7 @@ void main(){
 			BUZ = 0;
 			gameover();
 		}
-		
-		if(AC_DR==0)
-			LED = 0;
-		else
-			LED = 1;
-
-		if(AC_ES==0)
-			BUZ = 0;
-		else
-			BUZ = 1;
-		
-		if(BUT_AC==0){
-			movobs();
-		}		
+		LED = 1;
+		BUZ = 1;
 	}
 }
