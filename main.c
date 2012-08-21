@@ -23,7 +23,7 @@ int c,t,l,d=0;
 unsigned int posxobs,aposxobs,posyobs,easyobs;
 unsigned int posxlife,posylife;
 unsigned int flagobs, flagcar, flagtime, flagdie, flaglife = 0;
-unsigned int segs,mins = 0;	
+unsigned int segs = 0;	
 int sel = 0;
    
 unsigned char code sega[504] = {
@@ -138,6 +138,8 @@ unsigned char code heart[8] = {
 	0x0C,0x1E,0x3E,0x7C,0x3E,0x1E,0x0C,0x00,
 };
 
+char nums[10] = {'0','1','2','3','4','5','6','7','8','9'};
+
 void inittimer(){
 	TMOD &= 0xF0;		/*Timer 0 en modo 2: Contador autorecargable */
 	TMOD |= 0x09;		/* GATE0=1; C/T0#=0; T0M1=1; T0M0=0; */
@@ -189,13 +191,13 @@ void it_timer0(void) interrupt 1{
 			flaglife=1;
 		}
 	}
+	*/
 	
-	if(t<100){
+	if(t<25){
 		t++;
 	}else{
 		flagtime=1;
 	}
-	*/
 	
 	if(posyobs==5){
 		if((poscar>posxobs) && ((poscar+3) < (posxobs + easyobs))){
@@ -267,7 +269,7 @@ void initgame(){
 		wrdata(0x0F);
 	
 	cursorxy(1,1);
-	putstr("00:00");	
+	putstr("000");	
 	cursorxy(1,12);
 	putstr("1");
 	pixelxy(75,0);
@@ -378,14 +380,31 @@ void changecar(){
 }
 
 void changetime(){
-	if(segs<60){
+	int num;
+	char tex[3];
+	
+	if (segs>999)
+		segs=1;
+		
+	num = segs / 100;
+	if (tex[0] != nums[num]){
+		tex[0] = nums[num];
 		cursorxy(1,1);
-		putstr("50");
-	}else{
-		mins++;
-		cursorxy(1,1);
-		putstr("10:20");
+		putchar(tex[0]);
 	}
+	num = (segs % 100) / 10;
+	if (tex[1] != nums[num]){
+		tex[1] = nums[num];
+		cursorxy(1,2);
+		putchar(tex[1]);
+	}
+
+	num = segs % 10;
+	tex[2] = nums[num];	
+	cursorxy(1,3);
+	putchar(tex[2]);
+	
+	//t=0;
 }
 
 void gameover(){
@@ -441,15 +460,15 @@ void main(){
 		}*/
 		
 		if(flagtime==1){
-			flagtime=0;
 			segs++;
 			changetime();
+			flagtime=0;
 		}
-		
+		/*
 		if(flagdie==1){
 			BUZ = 0;
 			gameover();
-		}
+		}*/
 		LED = 1;
 		BUZ = 1;
 	}

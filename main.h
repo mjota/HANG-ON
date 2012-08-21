@@ -11,7 +11,6 @@
 *****************************************************/
 
 #include "lcd.h"
-#include "helper.h"
 #include <stdlib.h>
 
 #define BUT_ES P1_5
