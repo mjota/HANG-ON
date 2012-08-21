@@ -1,27 +1,29 @@
 /*****************************************************
 
-        Plug n Play Library for Nokia 3310 LCD
+ HANG ON - A little Game for a 8051 & Nokia 3310 LCD
+ Copyright (c) 2012 - Manuel Joaquin Díaz Pol
 
-        Author:  Ajay Bhargav
-		Email :  contact@rickeyworld.info
-		WWW   :  www.8051projects.net
+ This program is free software: you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation, either version 3 of the License, or (at your option) any later
+ version.
 
-		File  :  Nokia3310.C
-		Info  :  Test Program to check working of
-		         Library
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ details.
+
+ You should have received a copy of the GNU General Public License along with
+ this program.  If not, see <http://www.gnu.org/licenses/>.
 
 *****************************************************/
 
 #include "main.h"
-
-
-/* Some Custom Graphics data
-   Run it and see it :)      */
    
 unsigned int poscar;
-int c,t,l,d=0; 
+int c,t,l,d,m=0; 
 unsigned int posxobs,aposxobs,posyobs,easyobs;
-unsigned int posxlife,posylife;
+unsigned int life;
 unsigned int flagobs, flagcar, flagtime, flagdie, flaglife = 0;
 unsigned int segs = 0;	
 int sel = 0;
@@ -142,7 +144,7 @@ char nums[10] = {'0','1','2','3','4','5','6','7','8','9'};
 
 void inittimer(){
 	TMOD &= 0xF0;		/*Timer 0 en modo 2: Contador autorecargable */
-	TMOD |= 0x09;		/* GATE0=1; C/T0#=0; T0M1=1; T0M0=0; */
+	TMOD |= 0x0A;		/* GATE0=1; C/T0#=0; T0M1=1; T0M0=0; */
 	
 	TH0 = 0x00;	        /* Valor inicial de autorecarga */
 	TL0 = 0x00;			// Valor inicial del contador
@@ -153,47 +155,33 @@ void inittimer(){
    
 void it_timer0(void) interrupt 1{
 	
-	if (sel==0){
-		if(BUT_ES==0){
-			flagcar=1;
-		}
-		if(BUT_DR==0){
-			flagcar=2;
-		}	
+	if (m<20){
+		m++;
 	}else{
-		if(AC_ES==0){
-			flagcar=1;
+		if (sel==0){
+			if(BUT_ES==0){
+				flagcar=1;
+			}	
+			if(BUT_DR==0){
+				flagcar=2;
+			}	
+		}else{
+			if(AC_ES==0){
+				flagcar=1;
+			}
+			if(AC_DR==0){
+				flagcar=2;
+			}		
 		}
-		if(AC_DR==0){
-			flagcar=2;
-		}		
 	}
 		
-	if(c<10){
+	if(c<2500){
 		c++;
 	}else{
 		flagobs=1;
 	}
 	
-	if (flaglife==0){
-		if(l<250){
-			l++;
-		}else{
-			flaglife=1;
-		}
-	}
-	
-	/*
-	if (flaglife==2){
-		if(l<10){
-			l++;
-		}else{
-			flaglife=1;
-		}
-	}
-	*/
-	
-	if(t<25){
+	if(t<3921){
 		t++;
 	}else{
 		flagtime=1;
@@ -202,9 +190,13 @@ void it_timer0(void) interrupt 1{
 	if(posyobs==5){
 		if((poscar>posxobs) && ((poscar+3) < (posxobs + easyobs))){
 			LED=0;
-			BUZ=0;
 		}else{
-			flagdie=1;
+			if ((life>1) && (flaglife==0)){
+				flaglife=1;
+				flagdie=2;
+			}else{				
+				flagdie=1;
+			}
 		}
 	}
 	
@@ -271,7 +263,7 @@ void initgame(){
 	cursorxy(1,1);
 	putstr("000");	
 	cursorxy(1,12);
-	putstr("1");
+	putchar('1');
 	pixelxy(75,0);
 	for (i=0;i<8;i++){
 		wrdata(heart[i]);
@@ -282,8 +274,7 @@ void initgame(){
 	
 	poscar = 40;
 	posxobs = numrandom(42);
-	//posxlife = numrandom(75);
-	//posylife = 1;
+	life=1;
 	posyobs = 1;
 	easyobs = 42;
 
@@ -305,6 +296,7 @@ void movobs(){
 		pixelxy(rightobs,5);
 		wrdata(0x00);	
 		easyobs = 42 - (d % 35);
+		flaglife=0;
 	}
 	if (posyobs<6){		
 		pixelxy(posxobs,posyobs);
@@ -335,30 +327,6 @@ void movobs(){
 	}
 }
 
-void movlife(){
-	int i;
-	if (posylife<6){
-		pixelxy(posxlife,posylife);
-		for (i=0;i<8;i++)
-			wrdata(heart[i]);	
-		
-		if(posylife>1){
-			pixelxy(posxlife,posylife-1);
-			for (i=0;i<8;i++)
-				wrdata(0x00);
-		}	
-	}else{
-		pixelxy(posxlife,posylife-1);
-		for (i=0;i<8;i++)
-			wrdata(0x00);
-			
-		posylife=1;
-		posxlife = numrandom(75);
-		flaglife=0;
-		l=0;	
-	}
-}
-
 void changecar(){
 	int i;
 	
@@ -368,10 +336,6 @@ void changecar(){
 	
 		pixelxy(poscar+5,5);
 		wrdata(0x00);
-	
-		/*pixelxy(0,5);
-		for(i=0;i<84;i++)
-			wrdata(0x00);*/
 			
 		pixelxy(poscar,5);
 		for(i=0;i<4;i++)
@@ -385,6 +349,17 @@ void changetime(){
 	
 	if (segs>999)
 		segs=1;
+	
+	if ((segs % 10) == 0){
+		life++;
+		cursorxy(1,12);
+		putchar(nums[life]);
+		LED=0;
+		BUZ=0;
+	}else{
+		if (BUZ==0)
+			BUZ=1;
+	}
 		
 	num = segs / 100;
 	if (tex[0] != nums[num]){
@@ -404,7 +379,7 @@ void changetime(){
 	cursorxy(1,3);
 	putchar(tex[2]);
 	
-	//t=0;
+	t=0;
 }
 
 void gameover(){
@@ -436,40 +411,41 @@ void main(){
 
 	while(1){
 		if(flagcar==1){
-			flagcar=0;
 			poscar--;
 			changecar();
+			flagcar=0;
+			m=0;
 		}
 		if(flagcar==2){
-			flagcar=0;
 			poscar++;
 			changecar();
+			flagcar=0;
+			m=0;
 		}
 		
 		if(flagobs==1){
-			flagobs=0;
 			movobs();
 			d++;
-			c= 0 + (d/100);
+			c= 0 + (d * 5);
+			flagobs=0;
 		}
-		
-		/*if(flaglife==1){
-			movlife();
-			flaglife=2;
-			l=0;
-		}*/
 		
 		if(flagtime==1){
 			segs++;
 			changetime();
 			flagtime=0;
 		}
-		/*
 		if(flagdie==1){
 			BUZ = 0;
 			gameover();
-		}*/
+		}
+		
+		if(flagdie==2){
+			life--;
+			cursorxy(1,12);
+			putchar(nums[life]);
+			flagdie=0;
+		}
 		LED = 1;
-		BUZ = 1;
 	}
 }
