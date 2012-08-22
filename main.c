@@ -20,15 +20,15 @@
 
 #include "main.h"
    
-unsigned int poscar;
-int c,t,l,d,m=0; 
-unsigned int posxobs,aposxobs,posyobs,easyobs;
-unsigned int life;
-unsigned int flagobs, flagcar, flagtime, flagdie, flaglife = 0;
-unsigned int segs = 0;	
-int sel = 0;
+unsigned int poscar; 	//Posición horizontal del coche
+int c,t,l,d,m=0; 		//Contadores
+unsigned int posxobs,aposxobs,posyobs,easyobs; 		//Posiciones de los obstáculos
+unsigned int life; 		//Número de vidas
+unsigned int flagobs, flagcar, flagtime, flagdie, flaglife = 0; //Controles para las interrupciones
+unsigned int segs = 0;	//Tiempo
+int sel = 0;			//Selección acelerómetros o botones
    
-unsigned char code sega[504] = {
+unsigned char code sega[504] = {	//Texto inicial SEGA
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -63,7 +63,7 @@ unsigned char code sega[504] = {
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 };
 
-unsigned char code logo[504] = {
+unsigned char code logo[504] = {	//Ventana inicial HANG-ON
 	0xFF,0x03,0x03,0xFB,0xFB,0x03,0x03,0x03,0x03,0x03,0xFB,0xFB,0x03,0x03,0x03,0x03,
 	0x03,0x03,0xC3,0x7B,0x7B,0xE3,0x03,0x03,0x03,0x03,0x03,0x03,0xFB,0xFB,0xF3,0xC3,
 	0x03,0x03,0x03,0xFB,0xFB,0x03,0x03,0x03,0x03,0xE3,0xF3,0x33,0x1B,0x1B,0x1B,0x1B,
@@ -98,7 +98,7 @@ unsigned char code logo[504] = {
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 };
 
-unsigned char code marizq[240] = {
+unsigned char code marizq[240] = {	//Selección botones
 	0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,
 	0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0xF3,0x13,0x13,0x13,0x13,0x13,0x13,0xD3,
 	0xD3,0xD3,0x13,0x13,0x13,0x13,0x13,0x13,0xF3,0x03,0x03,0x03,0x03,0x03,0x03,0x03,
@@ -117,7 +117,7 @@ unsigned char code marizq[240] = {
 	0x07,0x00,0x01,0x00,0x00,0x00,0x00,0x00
 };
 
-unsigned char code marder[240] = {
+unsigned char code marder[240] = {	//Selección acelerómetros
 	0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,
 	0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0xC3,
 	0xC3,0xC3,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03,
@@ -136,25 +136,28 @@ unsigned char code marder[240] = {
 	0x47,0x40,0x41,0x40,0x40,0x40,0x40,0x7F
 };
 
-unsigned char code heart[8] = {
+unsigned char code heart[8] = {		//Indicador de vida
 	0x0C,0x1E,0x3E,0x7C,0x3E,0x1E,0x0C,0x00,
 };
 
-char nums[10] = {'0','1','2','3','4','5','6','7','8','9'};
+char nums[10] = {'0','1','2','3','4','5','6','7','8','9'};	//Conversor int-char para LCD
 
+//Inicia los timers
 void inittimer(){
-	TMOD &= 0xF0;		/*Timer 0 en modo 2: Contador autorecargable */
-	TMOD |= 0x0A;		/* GATE0=1; C/T0#=0; T0M1=1; T0M0=0; */
+	TMOD &= 0xF0;		//Timer 0 en modo 2: Contador autorecargable
+	TMOD |= 0x0A;		
 	
-	TH0 = 0x00;	        /* Valor inicial de autorecarga */
-	TL0 = 0x00;			// Valor inicial del contador
-	ET0=1;				/* Configura interrupción de timer 0 */
-	EA=1;               /* Habilita interrupciones */
+	TH0 = 0x00;	        //Valor inicial de autorecarga
+	TL0 = 0x00;			//Valor inicial del contador
+	ET0=1;				//Configura interrupción de timer 0
+	EA=1;               //Habilita interrupciones
 	TR0=1;	
 }
-   
+ 
+//Rutina de servicio de interrupción
 void it_timer0(void) interrupt 1{
 	
+	//Activa los flags si se presionan los botones/acelerómetros
 	if (m<20){
 		m++;
 	}else{
@@ -175,23 +178,26 @@ void it_timer0(void) interrupt 1{
 		}
 	}
 		
+	//Activa el movimiento del obstáculo
 	if(c<2500){
 		c++;
 	}else{
 		flagobs=1;
 	}
 	
+	//Activa el cambio de segundos
 	if(t<3921){
 		t++;
 	}else{
 		flagtime=1;
 	}
 	
+	//Comprueba si ha pasado entre los obstáculos
 	if(posyobs==5){
 		if((poscar>posxobs) && ((poscar+3) < (posxobs + easyobs))){
 			LED=0;
 		}else{
-			if ((life>1) && (flaglife==0)){
+			if ((life>1) && (flaglife==0)){	//Quita una vida o termina el juego
 				flaglife=1;
 				flagdie=2;
 			}else{				
@@ -200,13 +206,15 @@ void it_timer0(void) interrupt 1{
 		}
 	}
 	
-	TF0 = 0;            /* Pone a 0 el flag de interrupción */
+	TF0 = 0;	//Pone a 0 el flag de interrupción
 }
 
+//Muestra las ventanas iniciales
 void intro(){
-	int i;
+	long int i;
 	initlcd();
 
+	//Muestra el logo de SEGA y aumenta la semilla
 	pixelxy(0,0);
 	for(i=0;i<504;i++)
 		wrdata(sega[i]);
@@ -215,8 +223,12 @@ void intro(){
 		if(BUT_AC==0){
 			break;
 		}
+		i++;
 	}
 	
+	srand(i);	//Semilla para que la partida sea distinta cada vez
+	
+	//Selección de botones o acelerómetros
 	pixelxy(0,0);
 	for(i=0;i<504;i++)
 		wrdata(logo[i]);
@@ -229,14 +241,14 @@ void intro(){
 		wrdata(marizq[i]);
 		
 	while(1){
-		if (sel==0){
+		if (sel==0){	//Marca acelerómetros
 			if(BUT_DR==0){
 				sel=1;
 				pixelxy(0,2);
 				for(i=0;i<240;i++)
 					wrdata(marder[i]);
 			}
-		}else{
+		}else{			//Marca botones
 			if(BUT_ES==0){
 				sel=0;
 				pixelxy(0,2);
@@ -250,16 +262,21 @@ void intro(){
 	}
 }
 
+//Muestra la ventana de juego inicial
 void initgame(){
 	int i;
+	
+	//Limpia la pantalla
 	pixelxy(0,0);
 	for(i=0;i<504;i++)
 		wrdata(0x00);
 	
+	//Pinta el vehículo
 	pixelxy(40,5);
 	for(i=0;i<4;i++)
 		wrdata(0x0F);
 	
+	//Pinta los marcadores superiores iniciales
 	cursorxy(1,1);
 	putstr("000");	
 	cursorxy(1,12);
@@ -272,6 +289,7 @@ void initgame(){
 	for (i=0;i<84;i++)
 		wrdata(0x01);	
 	
+	//Inicializa las variables del juego
 	poscar = 40;
 	posxobs = numrandom(42);
 	life=1;
@@ -280,25 +298,28 @@ void initgame(){
 
 }
 
+//Calcula un número aleatorio
 unsigned int numrandom(unsigned int max){
 	unsigned int num;
 	num = rand() % max;
 	return num;
 }	
 
+//Mueve los obstáculos
 void movobs(){
-	int rightobs;
-	if (posyobs==1){
+	int rightobs;	//Obstáculo de la derecha
+	
+	if (posyobs==1){		//Si es el primero borra antes línea 5
 		pixelxy(aposxobs,5);
 		wrdata(0x00);
 		
 		rightobs = aposxobs + easyobs;
 		pixelxy(rightobs,5);
 		wrdata(0x00);	
-		easyobs = 42 - (d % 35);
-		flaglife=0;
+		easyobs = 42 - (d % 35);	//Cambia la amplitud del obstáculo
+		flaglife=0;	//Pone a 0 el flag si antes perdió una vida
 	}
-	if (posyobs<6){		
+	if (posyobs<6){	//Si es cualquier otro borra el anterior		
 		pixelxy(posxobs,posyobs);
 		wrdata(0xFF);
 		
@@ -307,7 +328,7 @@ void movobs(){
 		wrdata(0xFF);
 		
 		//Limpieza anterior
-		if (posyobs==2){
+		if (posyobs==2){	//Si era el 1, debe pintar línea horizontal
 			pixelxy(posxobs,1);
 			wrdata(0x01);
 			pixelxy(rightobs,1);
@@ -320,13 +341,14 @@ void movobs(){
 			wrdata(0x00);
 		}	
 		posyobs++;		
-	}else{
+	}else{	//Final de obstáculo, vuelve a empezar
 		posyobs = 1;
 		aposxobs = posxobs;
 		posxobs = numrandom(42);
 	}
 }
 
+//Movimiento del coche, pinta la nueva posición y borra anterior
 void changecar(){
 	int i;
 	
@@ -343,14 +365,15 @@ void changecar(){
 	}
 }
 
+//Pinta el tiempo en el LCD
 void changetime(){
 	int num;
 	char tex[3];
 	
-	if (segs>999)
+	if (segs>999)	//Resetea a 1
 		segs=1;
 	
-	if ((segs % 10) == 0){
+	if ((segs % 10) == 0){	//Vida extra a los X segs
 		life++;
 		cursorxy(1,12);
 		putchar(nums[life]);
@@ -360,13 +383,16 @@ void changetime(){
 		if (BUZ==0)
 			BUZ=1;
 	}
-		
+	
+	//Pinta las centenas si cambian	
 	num = segs / 100;
 	if (tex[0] != nums[num]){
 		tex[0] = nums[num];
 		cursorxy(1,1);
 		putchar(tex[0]);
 	}
+	
+	//Pinta las decenas si cambian
 	num = (segs % 100) / 10;
 	if (tex[1] != nums[num]){
 		tex[1] = nums[num];
@@ -374,18 +400,18 @@ void changetime(){
 		putchar(tex[1]);
 	}
 
+	//Pinta las unidades
 	num = segs % 10;
 	tex[2] = nums[num];	
 	cursorxy(1,3);
 	putchar(tex[2]);
-	
-	t=0;
 }
 
+//Ventana de fin del juego
 void gameover(){
 	int i;
 	pixelxy(0,1);
-	for(i=0;i<420;i++)
+	for(i=0;i<420;i++)	//Borra bajo la línea, tiempo visible
 		wrdata(0x00);
 		
 	cursorxy(3,3);
@@ -400,52 +426,55 @@ void gameover(){
 }
 
 void main(){
-	LED=0;
+	LED=0;	//Test 
 	
-	intro();	
-	initgame();	
+	intro();	//Muestra pantallas iniciales	
+	initgame();	//Configura juego	
 	
-	inittimer();
+	inittimer();	//Inicia timer
 	
 	LED=1;
 
 	while(1){
-		if(flagcar==1){
+		if(flagcar==1){	//Mueve el coche a la izquierda
 			poscar--;
 			changecar();
 			flagcar=0;
-			m=0;
+			m=0;	//Reset contador
 		}
-		if(flagcar==2){
+		if(flagcar==2){	//Mueve el coche a la derecha
 			poscar++;
 			changecar();
 			flagcar=0;
-			m=0;
+			m=0;	//Reset contador
 		}
 		
-		if(flagobs==1){
+		if(flagobs==1){	//Mueve el obstáculo
 			movobs();
 			d++;
-			c= 0 + (d * 5);
+			c= 0 + (d * 5);	//Aumenta la velocidad del obstáculo
 			flagobs=0;
 		}
 		
-		if(flagtime==1){
+		if(flagtime==1){	//Aumenta los segundos
+			t=0;	//Reset contador
 			segs++;
 			changetime();
 			flagtime=0;
 		}
-		if(flagdie==1){
+		
+		if(flagdie==1){	//Si falla muestra fin del juego
 			BUZ = 0;
 			gameover();
 		}
 		
-		if(flagdie==2){
+		if(flagdie==2){	//Resta una vida
 			life--;
 			cursorxy(1,12);
 			putchar(nums[life]);
 			flagdie=0;
 		}
-		LED = 1;
+		if (LED==0)	//Parpadeo al superar obstáculo
+			LED = 1;
 	}
 }
