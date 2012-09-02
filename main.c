@@ -20,9 +20,10 @@
 
 #include "main.h"
    
-unsigned int poscar; 	//Posición horizontal del coche
+unsigned int poscar; 	//Posición horizontal del vehículo
 int c,t,l,d,m=0; 		//Contadores
 unsigned int posxobs,aposxobs,posyobs,easyobs; 		//Posiciones de los obstáculos
+unsigned int nobs,nmov;		//Tiempo de movimiento de obstáculo y vehículo
 unsigned int life; 		//Número de vidas
 unsigned int flagobs, flagcar, flagtime, flagdie, flaglife = 0; //Controles para las interrupciones
 unsigned int segs = 0;	//Tiempo
@@ -158,7 +159,7 @@ void inittimer(){
 void it_timer0(void) interrupt 1{
 	
 	//Activa los flags si se presionan los botones/acelerómetros
-	if (m<20){
+	if (m<nmov){
 		m++;
 	}else{
 		if (sel==0){
@@ -179,7 +180,7 @@ void it_timer0(void) interrupt 1{
 	}
 		
 	//Activa el movimiento del obstáculo
-	if(c<2500){
+	if(c<nobs){
 		c++;
 	}else{
 		flagobs=1;
@@ -197,12 +198,7 @@ void it_timer0(void) interrupt 1{
 		if((poscar>posxobs) && ((poscar+3) < (posxobs + easyobs))){
 			LED=0;
 		}else{
-			if ((life>1) && (flaglife==0)){	//Quita una vida o termina el juego
-				flaglife=1;
-				flagdie=2;
-			}else{				
-				flagdie=1;
-			}
+			flagdie=1;
 		}
 	}
 	
@@ -244,6 +240,8 @@ void intro(){
 		if (sel==0){	//Marca acelerómetros
 			if(BUT_DR==0){
 				sel=1;
+				nmov = 60;
+				nobs = 3500;	//Más lento con acelerómetros
 				pixelxy(0,2);
 				for(i=0;i<240;i++)
 					wrdata(marder[i]);
@@ -251,6 +249,8 @@ void intro(){
 		}else{			//Marca botones
 			if(BUT_ES==0){
 				sel=0;
+				nmov = 20;
+				nobs = 1500;	//Más rápido con botones
 				pixelxy(0,2);
 				for(i=0;i<240;i++)
 					wrdata(marizq[i]);
@@ -280,7 +280,7 @@ void initgame(){
 	cursorxy(1,1);
 	putstr("000");	
 	cursorxy(1,12);
-	putchar('1');
+	putchar('0');
 	pixelxy(75,0);
 	for (i=0;i<8;i++){
 		wrdata(heart[i]);
@@ -292,7 +292,7 @@ void initgame(){
 	//Inicializa las variables del juego
 	poscar = 40;
 	posxobs = numrandom(42);
-	life=1;
+	life=0;
 	posyobs = 1;
 	easyobs = 42;
 
@@ -316,9 +316,9 @@ void movobs(){
 		rightobs = aposxobs + easyobs;
 		pixelxy(rightobs,5);
 		wrdata(0x00);	
-		easyobs = 42 - (d % 35);	//Cambia la amplitud del obstáculo
-		flaglife=0;	//Pone a 0 el flag si antes perdió una vida
+		easyobs = 42 - numrandom(35);	//Cambia la amplitud del obstáculo
 	}
+	
 	if (posyobs<6){	//Si es cualquier otro borra el anterior		
 		pixelxy(posxobs,posyobs);
 		wrdata(0xFF);
@@ -333,6 +333,7 @@ void movobs(){
 			wrdata(0x01);
 			pixelxy(rightobs,1);
 			wrdata(0x01);
+			flaglife=0;	//Pone a 0 el flag si antes perdió una vida
 		}
 		if (posyobs>2){
 			pixelxy(posxobs,posyobs-1);
@@ -373,15 +374,14 @@ void changetime(){
 	if (segs>999)	//Resetea a 1
 		segs=1;
 	
-	if ((segs % 10) == 0){	//Vida extra a los X segs
-		life++;
-		cursorxy(1,12);
-		putchar(nums[life]);
-		LED=0;
-		BUZ=0;
-	}else{
-		if (BUZ==0)
-			BUZ=1;
+	if ((segs % TIMELIFE) == 0){	//Vida extra a los X segs
+		if (life<6){
+			life++;
+			cursorxy(1,12);
+			putchar(nums[life]);
+			LED=0;
+			BUZ=0;
+		}
 	}
 	
 	//Pinta las centenas si cambian	
@@ -452,7 +452,7 @@ void main(){
 		if(flagobs==1){	//Mueve el obstáculo
 			movobs();
 			d++;
-			c= 0 + (d * 5);	//Aumenta la velocidad del obstáculo
+			c= 0 + (d * 2);	//Aumenta la velocidad del obstáculo
 			flagobs=0;
 		}
 		
@@ -464,17 +464,24 @@ void main(){
 		}
 		
 		if(flagdie==1){	//Si falla muestra fin del juego
-			BUZ = 0;
-			gameover();
+			flagdie=0;
+			if(flaglife==0){
+				if(life>0){	//Resta una vida
+					BUZ = 0;
+					flaglife=1;
+					life--;
+					cursorxy(1,12);
+					putchar(nums[life]);
+				}else{	//Fin del juego
+					BUZ = 0;
+					gameover();
+				}
+			}
 		}
 		
-		if(flagdie==2){	//Resta una vida
-			life--;
-			cursorxy(1,12);
-			putchar(nums[life]);
-			flagdie=0;
-		}
 		if (LED==0)	//Parpadeo al superar obstáculo
 			LED = 1;
+		if (BUZ==0)
+			BUZ=1;
 	}
 }

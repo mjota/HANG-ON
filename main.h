@@ -28,6 +28,7 @@
 #define AC_DR P3_1
 #define LED P3_3
 #define BUZ P3_2
+#define TIMELIFE 80
 
 void inittimer();
 void changetime();
