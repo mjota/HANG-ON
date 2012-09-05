@@ -21,7 +21,7 @@
 #include "main.h"
    
 unsigned int poscar; 	//Posición horizontal del vehículo
-int c,t,l,d,m=0; 		//Contadores
+int c,t,d,m=0; 		//Contadores
 unsigned int posxobs,aposxobs,posyobs,easyobs; 		//Posiciones de los obstáculos
 unsigned int nobs,nmov;		//Tiempo de movimiento de obstáculo y vehículo
 unsigned int life; 		//Número de vidas
